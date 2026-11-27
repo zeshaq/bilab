@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Backend (pytest/lint) and frontend (typecheck/build) jobs are added when
+# their code lands in Phase 2/3. Until then, this runs a documentation guard
+# so the repo stays coherent before any code exists.
+
+jobs:
+  docs-check:
+    name: Documentation guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required documentation exists
+        run: |
+          set -euo pipefail
+          for f in \
+            README.md \
+            CONTRIBUTING.md \
+            CHANGELOG.md \
+            docs/architecture.md \
+            docs/roadmap.md \
+            docs/adr/README.md \
+            docs/development/principles.md; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          echo "All required documentation present."
