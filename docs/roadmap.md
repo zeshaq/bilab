@@ -27,16 +27,19 @@ Goal: a governed metric model on real lab data, queryable over SQL/REST/GraphQL.
       a single governed identity, svc-dataops)
 - [ ] MCP surface — deferred to Phase 4 (the agent layer)
 
-## Phase 2 — Viz MVP (3-6 weeks)
+## Phase 2 — Viz MVP (in progress)
 
 Goal: dashboards and Explore on top of the semantic layer.
 
-- [ ] FastAPI backend: API surface, auth scaffolding, audit log
-- [ ] React + ECharts + react-grid-layout frontend
-- [ ] 8-10 chart types done well (line, bar, area, scatter, table, big number,
-      pie, funnel, heatmap, map)
-- [ ] Filters, time-grain, drill-down, dashboard persistence (Postgres)
-- [ ] Verify: build a dashboard from the semantic layer end to end
+- [x] FastAPI backend: API surface (/api/cubes, /api/query), audit log scaffold
+- [x] React + ECharts frontend: dashboard (KPI cards + bar charts) + Explore
+- [x] Verify: dashboard renders governed numbers end to end (browser-verified:
+      KPIs + charts from the live semantic layer)
+- [ ] More chart types (line, area, scatter, pie, funnel, heatmap, map, table) —
+      bar + big-number cards done
+- [ ] Filters, time-grain, drill-down
+- [ ] Dashboard persistence (Postgres)
+- [ ] Auth scaffolding — deferred to Phase 3
 
 ## Phase 3 — Governance (2-4 weeks)
 
