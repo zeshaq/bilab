@@ -35,18 +35,29 @@ DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.co
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
 
 _TOOL_HINT = (
-    "Available tools: metrics_catalog (list governed metrics) and metrics_query "
-    "(run a Cube query AS THE PERSON). Known measures: transactions.count, "
-    "transactions.total_amount, transactions.distinct_accounts, branches.count. "
-    "Known dimensions: transactions.channel, transactions.txn_type, "
+    "Available tools: metrics_catalog (list governed metrics), metrics_query "
+    "(run a Cube query AS THE PERSON), create_chart (make a standalone chart), "
+    "build_dashboard (create a dashboard from chart specs). Known measures: "
+    "transactions.count, transactions.total_amount, transactions.distinct_accounts, "
+    "branches.count. Known dimensions: transactions.channel, transactions.txn_type, "
     "transactions.direction, transactions.customer_segment, transactions.currency, "
-    "transactions.txn_time."
+    "transactions.txn_time. chart_type is one of bar, line, area, pie, number, table."
 )
 
 
 def _plan_scripted(question: str) -> list:
     """Deterministic stand-in planner (no API cost — used when no LLM key is set)."""
     q = question.lower()
+    if "dashboard" in q or "build" in q or "create" in q:
+        return [("build_dashboard", {
+            "title": "Auto dashboard",
+            "charts": json.dumps([
+                {"title": "transactions by channel", "chart_type": "bar",
+                 "query": {"measures": ["transactions.count"], "dimensions": ["transactions.channel"]}},
+                {"title": "total amount", "chart_type": "number",
+                 "query": {"measures": ["transactions.total_amount"]}},
+            ]),
+        })]
     if "amount" in q or "revenue" in q or "total" in q:
         return [("metrics_query", {"query": json.dumps({"measures": ["transactions.total_amount"]})})]
     if "channel" in q:
@@ -153,6 +164,10 @@ def _summarize(results):
             names = [c["name"] for c in r if isinstance(c, dict) and c.get("name")]
             if names:
                 parts.append("metrics available: " + ", ".join(names))
+            continue
+        if "data" not in r and "id" in r:
+            # a created dashboard/chart
+            parts.append(f"created: {r.get('title')} (id {r.get('id')})")
             continue
         rows = r.get("data") or []
         if not rows:

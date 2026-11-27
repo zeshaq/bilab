@@ -38,8 +38,8 @@ Goal: dashboards and Explore on top of the semantic layer.
 - [ ] More chart types (line, area, scatter, pie, funnel, heatmap, map, table) —
       bar + big-number cards done
 - [ ] Filters, time-grain, drill-down
-- [ ] Dashboard persistence (Postgres)
-- [ ] Auth scaffolding — deferred to Phase 3
+- [x] Dashboard persistence (Postgres) — bilab's own state store (infra/); the
+      agent can build dashboards and the frontend renders saved dashboards
 
 ## Phase 3 — Governance (done)
 
@@ -67,8 +67,11 @@ Goal: the agent-native wedge is real, not marketing.
 - [x] BYOK — a real model (DeepSeek) plans the tool calls when DEEPSEEK_API_KEY
       is set; exercised end to end (analyst masked, engineer full); the scripted
       stand-in remains the free default
-- [ ] create_chart / build_dashboard / schedule_report tools — need dashboard
-      persistence (Phase 2 remainder / Phase 5)
+- [x] create_chart / build_dashboard MCP tools over dashboard persistence; the
+      agent can BUILD a dashboard, not just answer
+- [x] Chat: an interactive CLI (`python -m agent.chat`) and a chat panel in the
+      dashboard (backend /api/agent/ask runs the agent AS THE CALLER)
+- [ ] schedule_report tool — Phase 5 (scheduling/alerts)
 
 ## Phase 5 — Enterprise features (months)
 

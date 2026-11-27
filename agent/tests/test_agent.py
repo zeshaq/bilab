@@ -60,3 +60,8 @@ def test_agent_catalog_lists_metrics():
     r = asyncio.run(ask("what metrics do we have?", RAH))
     assert "metrics available" in r["answer"]
     assert "transactions" in r["answer"] and "branches" in r["answer"]
+
+
+def test_agent_builds_dashboard():
+    r = asyncio.run(ask("build a dashboard of transactions", RAH))
+    assert "created" in r["answer"] and "Auto dashboard" in r["answer"]

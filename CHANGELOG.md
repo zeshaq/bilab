@@ -7,6 +7,10 @@ All notable changes to bilab are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- Dashboard persistence (Postgres, infra/) + agent write-tools (create_chart,
+  build_dashboard) + a chat panel in the dashboard (backend /api/agent/ask runs
+  the LangGraph agent AS THE CALLER). The agent can now BUILD a dashboard, not
+  just answer. 29/29 free tests green.
 - Phase 4 agent (core): MCP server (metrics_catalog, metrics_query) over the
   semantic layer running AS THE PERSON, and a LangGraph agent (decide -> execute
   -> answer) that answers with governed numbers (analyst masked, engineer full).

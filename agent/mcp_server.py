@@ -72,5 +72,31 @@ async def metrics_query(query: str, ctx: Context) -> str:
     return json.dumps(_backend("/api/query", token, method="POST", body={"query": q}))
 
 
+@mcp.tool()
+async def create_chart(title: str, chart_type: str, query: str, ctx: Context) -> str:
+    """Create a standalone chart (a governed layout over a Cube query). `query` is
+    a JSON-encoded Cube query string. chart_type is one of bar, line, area, pie,
+    number, table. Runs AS THE PERSON."""
+    token = _token(ctx)
+    if not token:
+        return json.dumps({"error": "no caller token: connect with a Keycloak bearer token"})
+    return json.dumps(_backend("/api/charts", token, method="POST",
+                               body={"title": title, "chart_type": chart_type, "query": json.loads(query)}))
+
+
+@mcp.tool()
+async def build_dashboard(title: str, charts: str, ctx: Context) -> str:
+    """Create a dashboard with the given charts. `charts` is a JSON-encoded list of
+    {"title": "...", "chart_type": "bar|line|area|pie|number|table", "query":
+    {"measures": [...], "dimensions": [...]}}. The data is NOT copied — each chart
+    runs through the semantic layer as whoever VIEWS the dashboard, so every viewer
+    sees their own permitted data. Runs AS THE PERSON."""
+    token = _token(ctx)
+    if not token:
+        return json.dumps({"error": "no caller token: connect with a Keycloak bearer token"})
+    return json.dumps(_backend("/api/dashboards", token, method="POST",
+                               body={"title": title, "charts": json.loads(charts)}))
+
+
 if __name__ == "__main__":
     mcp.run(transport="streamable-http")

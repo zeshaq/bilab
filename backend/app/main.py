@@ -2,7 +2,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import auth, cube
+from .db import init_db
+from .routers import agent, auth, cube, dashboards
 
 app = FastAPI(title="bilab", version="0.1.0")
 
@@ -17,6 +18,12 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(cube.router)
+app.include_router(dashboards.router)
+app.include_router(agent.router)
+
+# Create tables at import so they exist however the app is loaded (uvicorn or
+# TestClient, which doesn't run lifespan events without a context manager).
+init_db()
 
 
 @app.get("/health")

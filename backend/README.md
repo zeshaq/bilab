@@ -16,6 +16,9 @@ Endpoints:
 - `POST /api/login` — exchange username/password for a Keycloak token
 - `GET /api/cubes` — list cubes (requires bearer token)
 - `POST /api/query` — run a Cube query AS THE CALLER (requires bearer token)
+- `GET/POST /api/dashboards`, `GET/DELETE /api/dashboards/{id}` — dashboard CRUD
+- `GET/POST /api/charts` — standalone chart CRUD
+- `POST /api/agent/ask` — run the LangGraph agent AS THE CALLER
 
 ## Test
 

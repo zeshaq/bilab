@@ -1,0 +1,33 @@
+name: bilab-infra
+
+# bilab's own state store (Phase 4 completion): dashboards and charts. Clean-room
+# from the lab — bilab owns this Postgres. Bound to 127.0.0.1 only.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bilab-postgres
+    hostname: bilab-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bilab
+      POSTGRES_PASSWORD: ${BILAB_POSTGRES_PASSWORD}
+      POSTGRES_DB: bilab
+    volumes:
+      - bilab-pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bilab"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [datalab-net]
+
+volumes:
+  bilab-pgdata:
+
+networks:
+  datalab-net:
+    external: true
+    name: datalab-net

@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listCubes, login, runQuery, setToken, type Cube } from './api'
+import {
+  askAgent,
+  getDashboard,
+  listCubes,
+  listDashboards,
+  login,
+  runQuery,
+  setToken,
+  type Cube,
+  type DashboardDetail,
+  type DashboardSummary,
+} from './api'
 import { MetricCard } from './components/MetricCard'
 import { BarChart } from './components/BarChart'
+import { ChartRenderer } from './components/ChartRenderer'
 
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 0 })
 const fmtMoney = (n: number) => 'BDT ' + n.toLocaleString('en-US', { maximumFractionDigits: 2 })
@@ -33,18 +45,8 @@ function LoginForm({ onLogin }: { onLogin: (u: string, p: string) => Promise<voi
         (amounts masked) or rahim.engineer (full access).
       </p>
       <form onSubmit={submit}>
-        <input
-          placeholder="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          autoFocus
-        />
-        <input
-          placeholder="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <input placeholder="username" value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
+        <input placeholder="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <button type="submit" disabled={busy || !username || !password}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
@@ -52,6 +54,11 @@ function LoginForm({ onLogin }: { onLogin: (u: string, p: string) => Promise<voi
       {error && <div className="error">Login failed: {error}</div>}
     </div>
   )
+}
+
+interface ChatMsg {
+  q: string
+  a: string
 }
 
 export default function App() {
@@ -62,6 +69,12 @@ export default function App() {
   const [channelData, setChannelData] = useState<Record<string, string>[]>([])
   const [dimension, setDimension] = useState('transactions.channel')
   const [exploreData, setExploreData] = useState<Record<string, string>[]>([])
+
+  const [chat, setChat] = useState<ChatMsg[]>([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatBusy, setChatBusy] = useState(false)
+  const [dashboards, setDashboards] = useState<DashboardSummary[]>([])
+  const [activeDashboard, setActiveDashboard] = useState<DashboardDetail | null>(null)
 
   useEffect(() => {
     if (!signedIn) return
@@ -85,6 +98,7 @@ export default function App() {
     runQuery({ measures: ['transactions.count'], dimensions: ['transactions.channel'] })
       .then(setChannelData)
       .catch((e) => setError(String(e)))
+    listDashboards().then(setDashboards).catch((e) => setError(String(e)))
   }, [signedIn])
 
   useEffect(() => {
@@ -116,7 +130,32 @@ export default function App() {
     setChannelData([])
     setExploreData([])
     setCubes([])
+    setChat([])
+    setDashboards([])
+    setActiveDashboard(null)
     setError(null)
+  }
+
+  const handleAsk = async () => {
+    const q = chatInput.trim()
+    if (!q || chatBusy) return
+    setChatBusy(true)
+    setChatInput('')
+    try {
+      const res = await askAgent(q)
+      setChat((c) => [...c, { q, a: res.answer }])
+      if (res.plan.includes('build_dashboard') || res.plan.includes('create_chart')) {
+        listDashboards().then(setDashboards).catch(() => {})
+      }
+    } catch (e) {
+      setChat((c) => [...c, { q, a: 'error: ' + String(e) }])
+    } finally {
+      setChatBusy(false)
+    }
+  }
+
+  const openDashboard = (id: number) => {
+    getDashboard(id).then(setActiveDashboard).catch((e) => setError(String(e)))
   }
 
   if (!signedIn) {
@@ -176,6 +215,58 @@ export default function App() {
           xKey={dimension}
           yKey="transactions.count"
         />
+      </section>
+
+      <section className="panel">
+        <h2>Ask the agent</h2>
+        <div className="chat">
+          {chat.length === 0 && <div className="chat-hint">Ask e.g. "build a dashboard of transactions by channel".</div>}
+          {chat.map((m, i) => (
+            <div key={i} className="chat-msg">
+              <div className="chat-q">{m.q}</div>
+              <div className="chat-a">{m.a}</div>
+            </div>
+          ))}
+          <div className="chat-input">
+            <input
+              placeholder="Ask a question…"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+            />
+            <button onClick={handleAsk} disabled={chatBusy || !chatInput.trim()}>
+              {chatBusy ? '…' : 'Ask'}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <h2>Dashboards</h2>
+        {dashboards.length === 0 && <div className="chat-hint">No dashboards yet — ask the agent to build one.</div>}
+        <div className="dashboards">
+          <ul className="dash-list">
+            {dashboards.map((d) => (
+              <li key={d.id}>
+                <button className="dash-link" onClick={() => openDashboard(d.id)}>
+                  {d.title} <span className="dash-meta">({d.chart_count} charts · {d.owner})</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {activeDashboard && (
+            <div className="dash-detail">
+              <h3>{activeDashboard.title}</h3>
+              <div className="dash-charts">
+                {activeDashboard.charts.map((c, i) => (
+                  <div className="dash-chart" key={i}>
+                    <ChartRenderer title={c.title} chartType={c.chart_type} query={c.query} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
     </div>
   )

@@ -6,6 +6,26 @@ export interface Cube {
   dimensions: string[]
 }
 
+export interface DashboardSummary {
+  id: number
+  title: string
+  owner: string
+  chart_count: number
+}
+
+export interface DashboardChart {
+  title: string
+  chart_type: string
+  query: Record<string, unknown>
+}
+
+export interface DashboardDetail {
+  id: number
+  title: string
+  owner: string
+  charts: DashboardChart[]
+}
+
 let token: string | null = null
 
 export function setToken(t: string | null) {
@@ -47,4 +67,26 @@ export async function runQuery(query: Record<string, unknown>): Promise<Record<s
   if (!r.ok) throw new Error(`query: ${r.status}`)
   const j = await r.json()
   return j.data
+}
+
+export async function askAgent(question: string): Promise<{ answer: string; plan: string[] }> {
+  const r = await fetch('/api/agent/ask', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ question }),
+  })
+  if (!r.ok) throw new Error(`agent: ${r.status}`)
+  return r.json()
+}
+
+export async function listDashboards(): Promise<DashboardSummary[]> {
+  const r = await fetch('/api/dashboards', { headers: authHeaders() })
+  if (!r.ok) throw new Error(`dashboards: ${r.status}`)
+  return r.json()
+}
+
+export async function getDashboard(id: number): Promise<DashboardDetail> {
+  const r = await fetch(`/api/dashboards/${id}`, { headers: authHeaders() })
+  if (!r.ok) throw new Error(`dashboard: ${r.status}`)
+  return r.json()
 }
