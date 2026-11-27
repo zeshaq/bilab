@@ -64,8 +64,9 @@ Goal: the agent-native wedge is real, not marketing.
 - [x] LangGraph multi-step agent (decide -> execute -> answer) driving the MCP tools
 - [x] Verify: the agent answers with governed numbers — analyst gets "masked",
       engineer gets the full amount + breakdowns (7/7 agent+MCP tests green)
-- [ ] BYOK via LiteLLM/OpenRouter — scaffolded (scripted planner stand-in, config
-      swap documented); a real model is not exercised to avoid API cost
+- [x] BYOK — a real model (DeepSeek) plans the tool calls when DEEPSEEK_API_KEY
+      is set; exercised end to end (analyst masked, engineer full); the scripted
+      stand-in remains the free default
 - [ ] create_chart / build_dashboard / schedule_report tools — need dashboard
       persistence (Phase 2 remainder / Phase 5)
 

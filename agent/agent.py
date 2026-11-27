@@ -1,16 +1,19 @@
 """bilab agent — a LangGraph agent over the semantic layer (Phase 4).
 
 Multi-step: decide which governed metric answers the question, execute the MCP
-tools AS THE PERSON, and answer. The planner is a SCRIPTED stand-in
-(deterministic, no API cost — the same pattern the lab's step tests use).
+tools AS THE PERSON, and answer.
 
-BYOK: switching to a real model (LiteLLM/OpenRouter) is a config change — set
-BILAB_LLM_BACKEND=litellm and provide the key; `_plan` is the swap point. The
-agent itself never changes.
+The planner is a deterministic stand-in by default (free, no API cost). When
+DEEPSEEK_API_KEY is set, the agent uses a real model (DeepSeek chat,
+OpenAI-compatible) to plan the tool calls. The model only PLANS; RLS is enforced
+downstream by the caller's Keycloak token through Cube/Trino, so a masked
+analyst stays masked no matter which model planned the query.
 """
 import asyncio
 import json
 import os
+import re
+import urllib.request
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
@@ -28,8 +31,21 @@ async def _call_tool(token: str, name: str, args: dict):
             return json.loads((await sess.call_tool(name, args)).content[0].text)
 
 
-def _plan(question: str) -> list:
-    """Scripted planner: a question -> MCP tool calls. Swap for a real LLM here."""
+DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
+
+_TOOL_HINT = (
+    "Available tools: metrics_catalog (list governed metrics) and metrics_query "
+    "(run a Cube query AS THE PERSON). Known measures: transactions.count, "
+    "transactions.total_amount, transactions.distinct_accounts, branches.count. "
+    "Known dimensions: transactions.channel, transactions.txn_type, "
+    "transactions.direction, transactions.customer_segment, transactions.currency, "
+    "transactions.txn_time."
+)
+
+
+def _plan_scripted(question: str) -> list:
+    """Deterministic stand-in planner (no API cost — used when no LLM key is set)."""
     q = question.lower()
     if "amount" in q or "revenue" in q or "total" in q:
         return [("metrics_query", {"query": json.dumps({"measures": ["transactions.total_amount"]})})]
@@ -38,6 +54,69 @@ def _plan(question: str) -> list:
     if "account" in q:
         return [("metrics_query", {"query": json.dumps({"measures": ["transactions.distinct_accounts"]})})]
     return [("metrics_catalog", {})]
+
+
+def _parse_calls(content: str) -> list:
+    """Parse the LLM's tool-call JSON into [(tool, args), ...], tolerating fences
+    and object-vs-array wrapping."""
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.strip("`").strip()
+        if content.lower().startswith("json"):
+            content = content[4:].strip()
+    try:
+        obj = json.loads(content)
+    except json.JSONDecodeError:
+        m = re.search(r"\[.*\]|\{.*\}", content, re.DOTALL)
+        if not m:
+            raise
+        obj = json.loads(m.group(0))
+    if isinstance(obj, dict):
+        obj = obj.get("calls") or obj.get("tools") or []
+    if isinstance(obj, dict):
+        obj = [obj]
+    out = []
+    for c in obj:
+        args = c.get("args") or {}
+        if isinstance(args.get("query"), dict):
+            args = dict(args)
+            args["query"] = json.dumps(args["query"])
+        out.append((c["tool"], args))
+    return out
+
+
+def _plan_llm(question: str) -> list:
+    """Real-model planner (BYOK): ask DeepSeek to plan the tool calls."""
+    key = os.environ["DEEPSEEK_API_KEY"]
+    system = (
+        "You plan queries for a governed BI semantic layer. "
+        + _TOOL_HINT
+        + ' Respond with ONLY a JSON object: {"calls":[{"tool":"metrics_query",'
+          '"args":{"query":"{\\"measures\\":[\\"transactions.count\\"]}"}}]}. '
+          "args.query is a JSON-encoded Cube query string. Choose metrics_query when the "
+          "question names a metric; choose metrics_catalog only when it asks what metrics exist."
+    )
+    body = json.dumps({
+        "model": DEEPSEEK_MODEL,
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": question}],
+        "temperature": 0,
+    }).encode()
+    req = urllib.request.Request(
+        DEEPSEEK_BASE_URL.rstrip("/") + "/chat/completions",
+        data=body,
+        headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=60) as r:
+        data = json.load(r)
+    return _parse_calls(data["choices"][0]["message"]["content"])
+
+
+def _plan(question: str) -> list:
+    """Pick the planner: a real LLM (BYOK) when DEEPSEEK_API_KEY is set, else the
+    scripted stand-in."""
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        return _plan_llm(question)
+    return _plan_scripted(question)
 
 
 class State(TypedDict, total=False):
@@ -69,6 +148,12 @@ def _fmt(v):
 def _summarize(results):
     parts = []
     for r in results:
+        if isinstance(r, list):
+            # metrics_catalog returns a list of cubes
+            names = [c["name"] for c in r if isinstance(c, dict) and c.get("name")]
+            if names:
+                parts.append("metrics available: " + ", ".join(names))
+            continue
         rows = r.get("data") or []
         if not rows:
             continue

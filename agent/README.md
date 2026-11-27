@@ -25,10 +25,18 @@ set -a && . /home/system/datalab/identity/.env && set +a
 
 ## BYOK
 
-The planner (`_plan` in `agent.py`) is a deterministic stand-in, the same
-pattern the lab's step tests use so tests never spend API money. To use a real
-model, set `BILAB_LLM_BACKEND=litellm` and provide the key; `_plan` is the swap
-point — the graph and the MCP tools do not change.
+The planner is a deterministic stand-in by default (free, no API cost — the same
+pattern the lab's step tests use). When `DEEPSEEK_API_KEY` is set, the agent
+uses a real model (DeepSeek chat, OpenAI-compatible) to plan the tool calls.
+
+The model only PLANS; RLS is enforced downstream by the caller's Keycloak token
+through Cube/Trino, so a masked analyst stays masked no matter which model
+planned the query.
+
+Env: `DEEPSEEK_API_KEY` (required to enable BYOK), `DEEPSEEK_MODEL` (default
+`deepseek-chat`), `DEEPSEEK_BASE_URL` (default `https://api.deepseek.com`).
+
+Opt-in BYOK test (skipped without the key): `agent/tests/test_agent_llm.py`.
 
 ## Not yet built
 

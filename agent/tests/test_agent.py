@@ -17,6 +17,10 @@ import urllib.request
 
 from agent.agent import ask
 
+# The default suite must stay free and deterministic: force the scripted planner
+# even if a BYOK key happens to be in the environment.
+os.environ.pop("DEEPSEEK_API_KEY", None)
+
 KC = "http://localhost:8180/realms/datalab"
 
 
@@ -50,3 +54,9 @@ def test_agent_amount_masked_for_analyst():
 def test_agent_amount_full_for_engineer():
     r = asyncio.run(ask("what is the total amount?", RAH))
     assert "total amount: BDT" in r["answer"] and "masked" not in r["answer"]
+
+
+def test_agent_catalog_lists_metrics():
+    r = asyncio.run(ask("what metrics do we have?", RAH))
+    assert "metrics available" in r["answer"]
+    assert "transactions" in r["answer"] and "branches" in r["answer"]
