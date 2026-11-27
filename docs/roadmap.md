@@ -55,15 +55,19 @@ Goal: production-grade security.
 - [ ] Full browser OIDC redirect flow (Phase 3 uses the password grant; the
       OIDC flow is the production path)
 
-## Phase 4 — Agent (2-4 weeks)
+## Phase 4 — Agent (done, core)
 
 Goal: the agent-native wedge is real, not marketing.
 
-- [ ] MCP server over the semantic layer (list_metrics, run_query, create_chart,
-      build_dashboard, schedule_report)
-- [ ] LangGraph multi-step agent
-- [ ] BYOK via LiteLLM/OpenRouter
-- [ ] Verify: "show me revenue by region, add it to the Q3 dashboard" end to end
+- [x] MCP server over the semantic layer: metrics_catalog + metrics_query,
+      running AS THE PERSON (forwards the caller's Keycloak token to the backend)
+- [x] LangGraph multi-step agent (decide -> execute -> answer) driving the MCP tools
+- [x] Verify: the agent answers with governed numbers — analyst gets "masked",
+      engineer gets the full amount + breakdowns (7/7 agent+MCP tests green)
+- [ ] BYOK via LiteLLM/OpenRouter — scaffolded (scripted planner stand-in, config
+      swap documented); a real model is not exercised to avoid API cost
+- [ ] create_chart / build_dashboard / schedule_report tools — need dashboard
+      persistence (Phase 2 remainder / Phase 5)
 
 ## Phase 5 — Enterprise features (months)
 

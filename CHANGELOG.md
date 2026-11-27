@@ -7,6 +7,10 @@ All notable changes to bilab are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- Phase 4 agent (core): MCP server (metrics_catalog, metrics_query) over the
+  semantic layer running AS THE PERSON, and a LangGraph agent (decide -> execute
+  -> answer) that answers with governed numbers (analyst masked, engineer full).
+  Scripted planner stand-in; BYOK is a documented config swap. 7/7 tests green.
 - Phase 3 governance: per-user RLS through the semantic layer — the backend
   verifies Keycloak tokens and passes the caller's identity through Cube to
   Trino, so the lab's OPA masking/row filters apply per user (analyst masked,
