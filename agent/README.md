@@ -10,6 +10,8 @@ bilab's agent interface (Phase 4) — the agent-native wedge (ADR-0003, ADR-0007
   to agent queries exactly as to a human.
 - `agent.py` — a LangGraph agent (decide -> execute -> answer) that drives the
   MCP tools. The planner is a scripted stand-in (deterministic, no API cost).
+- `chat.py` — an interactive chat REPL (`python -m agent.chat <username>`) that
+  runs the agent as you.
 - `tests/` — acceptance tests for the MCP server and the agent (7 tests).
 
 ## Run
