@@ -36,4 +36,4 @@ Phase 1 (semantic core) is next. See [docs/roadmap.md](docs/roadmap.md).
 
 ## License
 
-Proprietary (private repository). See [LICENSE](LICENSE).
+Source-available, all rights reserved. See [LICENSE](LICENSE).
