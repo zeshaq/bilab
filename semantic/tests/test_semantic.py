@@ -1,12 +1,13 @@
-"""bilab Phase 1 acceptance tests — the semantic layer.
+"""bilab semantic-layer acceptance tests.
 
 Prove the core claim of the roadmap: a governed metric and the equivalent plain
 SQL on the same table return the same numbers ("same numbers everywhere").
 
 These are integration tests: they run bilab's Cube (REST API on 127.0.0.1:4199)
 and the lab's Trino (https://localhost:8087) as the SAME governed identity
-(svc-dataops), then compare. Live data grows between the two queries, so
-comparisons allow a small relative tolerance.
+(svc-dataops), then compare. Since Phase 3, Cube runs per-user, so the tests
+pass the identity in X-User / X-User-Token headers. Live data grows between the
+two queries, so comparisons allow a small relative tolerance.
 
 Environment (the lab is the data source, so a few lab values are needed):
   DATAOPS_OIDC_CLIENT_SECRET  svc-dataops Keycloak client secret (lab dataops/.env)
@@ -16,18 +17,15 @@ Environment (the lab is the data source, so a few lab values are needed):
 
 Run from the repo root:
   set -a && . /home/system/datalab/dataops/.env && set +a
-  python -m pytest semantic/tests/test_semantic.py -v
+  .venv/bin/pytest semantic/tests/test_semantic.py -v
 """
 
 import json
 import os
 import ssl
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
-
-import pytest
 
 CUBE = os.environ.get("BILAB_CUBE_URL", "http://127.0.0.1:4199")
 TRINO = os.environ.get("BILAB_TRINO_URL", "https://localhost:8087").rstrip("/")
@@ -36,6 +34,7 @@ CA = os.environ.get("TRINO_CA", "/home/system/datalab/trino/tls/trino.crt")
 
 CTX = ssl.create_default_context(cafile=CA)
 SECRET = os.environ.get("DATAOPS_OIDC_CLIENT_SECRET", "")
+SVC_USER = "service-account-svc-dataops"
 
 
 def _svc_token():
@@ -52,7 +51,7 @@ def _svc_token():
 def _trino(sql):
     """Run one SQL statement on Trino as svc-dataops; return {"columns": [...], "rows": [[...]]}."""
     tok = _svc_token()
-    h = {"Authorization": "Bearer " + tok, "X-Trino-User": "service-account-svc-dataops",
+    h = {"Authorization": "Bearer " + tok, "X-Trino-User": SVC_USER,
          "X-Trino-Source": "bilab-tests"}
     r = json.load(urllib.request.urlopen(
         urllib.request.Request(TRINO + "/v1/statement", data=sql.encode(), headers=h), context=CTX, timeout=120))
@@ -70,15 +69,20 @@ def _trino(sql):
     return {"columns": [c["name"] for c in cols or []], "rows": rows}
 
 
+def _cube_headers():
+    return {"x-user": SVC_USER, "x-user-token": _svc_token()}
+
+
 def _cube_get(path):
-    with urllib.request.urlopen(CUBE + path, timeout=120) as r:
+    req = urllib.request.Request(CUBE + path, headers=_cube_headers())
+    with urllib.request.urlopen(req, timeout=120) as r:
         return json.load(r)
 
 
 def _cube_load(query):
     body = json.dumps({"query": query}).encode()
-    req = urllib.request.Request(CUBE + "/cubejs-api/v1/load", data=body,
-                                 headers={"Content-Type": "application/json"}, method="POST")
+    headers = {"Content-Type": "application/json", **_cube_headers()}
+    req = urllib.request.Request(CUBE + "/cubejs-api/v1/load", data=body, headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=300) as r:
         return json.load(r)
 

@@ -1,9 +1,10 @@
 name: bilab-semantic
 
-# bilab Phase 1: the semantic layer (Cube) on the lab's Trino/Iceberg, plus
-# Cubestore for pre-aggregation caching. Clean-room: bilab owns its own models
-# and config; the lab's Trino is the data source. The Cube REST API is bound to
-# 127.0.0.1 only (Phase 1; governance/auth moves it behind a gateway in Phase 3).
+# bilab Phase 3: the semantic layer (Cube) on the lab's Trino/Iceberg, with
+# per-user governance. Queries run AS THE PERSON (the backend verifies their
+# Keycloak token and passes it through), so the lab's OPA masking/RLS applies.
+# Cube publishes no host port in production; Phase 3 keeps a loopback port for
+# tests, the backend is the only caller.
 
 services:
   cube:
@@ -13,15 +14,14 @@ services:
     restart: unless-stopped
     environment:
       CUBEJS_DB_TYPE: trino
-      CUBEJS_DEV_MODE: "true"          # Phase 1: open REST API on loopback; auth lands in Phase 3
+      CUBEJS_DEV_MODE: "false"
+      CUBEJS_API_SECRET: ${CUBEJS_API_SECRET}
       CUBEJS_TELEMETRY: "false"
       CUBEJS_LOG_LEVEL: warn
       CUBEJS_SCHEMA_PATH: model
       CUBEJS_CUBESTORE_HOST: cubestore
-      DATAOPS_OIDC_CLIENT_SECRET: ${DATAOPS_OIDC_CLIENT_SECRET}
     volumes:
       - ./cube.js:/cube/conf/cube.js:ro
-      - ./token.js:/cube/conf/token.js:ro
       - ./model:/cube/conf/model:ro
       - ./tls/trino.crt:/certs/trino.crt:ro
     ports:

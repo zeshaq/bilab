@@ -41,15 +41,19 @@ Goal: dashboards and Explore on top of the semantic layer.
 - [ ] Dashboard persistence (Postgres)
 - [ ] Auth scaffolding — deferred to Phase 3
 
-## Phase 3 — Governance (2-4 weeks)
+## Phase 3 — Governance (done)
 
 Goal: production-grade security.
 
-- [ ] Keycloak (OIDC/SAML/LDAP)
-- [ ] OPA/Casbin fine-grained authorization
-- [ ] RLS through the semantic layer (single security context for humans + agents)
-- [ ] Audit log for every action
-- [ ] Verify: two users with different RLS see different data, incl. via agent
+- [x] Keycloak — reused the lab's realm as the identity plane (ADR-0007)
+- [x] OPA — reused the lab's policy, enforced at Trino; no bilab-owned policy
+- [x] RLS through the semantic layer: Cube + backend pass the caller's Keycloak
+      token through; OPA masking/row filters apply per identity
+- [x] Per-user audit log (backend records the caller's identity)
+- [x] Verify: analyst sees masked amounts + refused bank schema; engineer sees
+      full amounts + bank schema (6/6 governance tests + live end-to-end curl)
+- [ ] Full browser OIDC redirect flow (Phase 3 uses the password grant; the
+      OIDC flow is the production path)
 
 ## Phase 4 — Agent (2-4 weeks)
 

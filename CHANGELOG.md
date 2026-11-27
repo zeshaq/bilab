@@ -7,6 +7,11 @@ All notable changes to bilab are recorded here. Format follows
 ## [Unreleased]
 
 ### Added
+- Phase 3 governance: per-user RLS through the semantic layer — the backend
+  verifies Keycloak tokens and passes the caller's identity through Cube to
+  Trino, so the lab's OPA masking/row filters apply per user (analyst masked,
+  engineer full). Frontend login form. 6/6 governance tests green.
+- ADR-0007 (delegate identity to Keycloak and policy to OPA).
 - Phase 2 viz MVP: FastAPI backend (/api/cubes, /api/query, audit log) and a
   React + TypeScript + ECharts frontend (KPI cards, bar charts, Explore) over the
   semantic layer; verified end to end in a browser against live lab data.
