@@ -12,15 +12,20 @@ Documentation and engineering standards in place before any code.
 - [x] Engineering principles, contribution guide
 - [x] Issue/PR templates, CI scaffold, repo hygiene
 
-## Phase 1 — Semantic core (2-4 weeks)
+## Phase 1 — Semantic core (done)
 
-Goal: a governed metric model on real lab data, queryable over SQL/REST/MCP.
+Goal: a governed metric model on real lab data, queryable over SQL/REST/GraphQL.
 
-- [ ] Stand up Cube Core against Trino (Iceberg tables from Oracle CDC)
-- [ ] Define initial metric model (dimensions, measures, joins) for a real domain
-- [ ] Row-level security via security context
-- [ ] Pre-aggregation caching (DuckDB/ClickHouse)
-- [ ] Verify: query a metric via SQL, REST, GraphQL, and MCP; same numbers everywhere
+- [x] Stand up Cube Core against Trino (Iceberg tables from Oracle CDC) — bilab's
+      own Cube (bilab-cube :4199) + Cubestore on datalab-net; lab Trino is the data source
+- [x] Define initial metric model (transactions, branches) on
+      lakehouse.curated.txn_enriched and lakehouse.bank.branches
+- [x] Pre-aggregation caching (Cubestore)
+- [x] Verify: metric == plain SQL on the same table, via REST and GraphQL
+      (5/5 acceptance tests green; total_amount, distinct_accounts, counts all agree)
+- [ ] Row-level security via security context — deferred to Phase 3 (Phase 1 uses
+      a single governed identity, svc-dataops)
+- [ ] MCP surface — deferred to Phase 4 (the agent layer)
 
 ## Phase 2 — Viz MVP (3-6 weeks)
 

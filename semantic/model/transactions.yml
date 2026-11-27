@@ -1,0 +1,53 @@
+cubes:
+  - name: transactions
+    sql_table: lakehouse.curated.txn_enriched
+    title: Transactions
+    description: >
+      Every posted transaction of every account, enriched with account, customer
+      and merchant. One row per transaction. Amounts are in BDT unless the
+      currency column says otherwise. Amount columns are governed by the access
+      policy: identities with a lower clearance see them empty (NULL).
+    dimensions:
+      - name: txn_id
+        sql: txn_id
+        type: string
+        primary_key: true
+      - name: channel
+        sql: channel
+        type: string
+        description: ATM, BRANCH, INTERNET, MOBILE, POS or ECOM
+      - name: txn_type
+        sql: txn_type
+        type: string
+        description: Kind of transaction (CARD_PURCHASE, TRANSFER_OUT, SALARY, ...)
+      - name: direction
+        sql: direction
+        type: string
+        description: D for debit (money out), C for credit (money in)
+      - name: customer_segment
+        sql: customer_segment
+        type: string
+        description: Commercial segment of the customer (RETAIL, SME, ...)
+      - name: currency
+        sql: currency
+        type: string
+      - name: txn_time
+        sql: txn_ts
+        type: time
+        description: When the transaction happened
+    measures:
+      - name: count
+        type: count
+        description: Number of transactions
+      - name: total_amount
+        sql: amount
+        type: sum
+        description: Total amount (governed by the access policy)
+      - name: average_amount
+        sql: amount
+        type: avg
+        description: Average amount (governed by the access policy)
+      - name: distinct_accounts
+        sql: account_id
+        type: count_distinct
+        description: Number of different accounts that transacted

@@ -29,6 +29,7 @@ pnpm-debug.log*
 # Cube
 semantic/.cubestore/
 .cubestore/
+semantic/tls/*.crt
 
 # Environment / secrets
 .env

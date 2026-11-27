@@ -1,0 +1,25 @@
+cubes:
+  - name: branches
+    sql_table: lakehouse.bank.branches
+    title: Branches
+    description: >
+      The bank's branches. Reading the bank schema is governed by the access
+      policy; identities without the bank-schema clearance are refused.
+    dimensions:
+      - name: branch_id
+        sql: branch_id
+        type: number
+        primary_key: true
+      - name: name
+        sql: name
+        type: string
+      - name: district
+        sql: district
+        type: string
+      - name: division
+        sql: division
+        type: string
+    measures:
+      - name: count
+        type: count
+        description: Number of branches

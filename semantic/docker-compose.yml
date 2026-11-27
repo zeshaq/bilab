@@ -1,0 +1,50 @@
+name: bilab-semantic
+
+# bilab Phase 1: the semantic layer (Cube) on the lab's Trino/Iceberg, plus
+# Cubestore for pre-aggregation caching. Clean-room: bilab owns its own models
+# and config; the lab's Trino is the data source. The Cube REST API is bound to
+# 127.0.0.1 only (Phase 1; governance/auth moves it behind a gateway in Phase 3).
+
+services:
+  cube:
+    image: cubejs/cube:v1.8.31
+    container_name: bilab-cube
+    hostname: bilab-cube
+    restart: unless-stopped
+    environment:
+      CUBEJS_DB_TYPE: trino
+      CUBEJS_DEV_MODE: "true"          # Phase 1: open REST API on loopback; auth lands in Phase 3
+      CUBEJS_TELEMETRY: "false"
+      CUBEJS_LOG_LEVEL: warn
+      CUBEJS_SCHEMA_PATH: model
+      CUBEJS_CUBESTORE_HOST: cubestore
+      DATAOPS_OIDC_CLIENT_SECRET: ${DATAOPS_OIDC_CLIENT_SECRET}
+    volumes:
+      - ./cube.js:/cube/conf/cube.js:ro
+      - ./token.js:/cube/conf/token.js:ro
+      - ./model:/cube/conf/model:ro
+      - ./tls/trino.crt:/certs/trino.crt:ro
+    ports:
+      - "127.0.0.1:4199:4000"
+    mem_limit: 3g
+    networks: [datalab-net]
+
+  cubestore:
+    image: cubejs/cubestore:v1.8.31
+    container_name: bilab-cubestore
+    hostname: cubestore
+    restart: unless-stopped
+    environment:
+      CUBESTORE_LOG_LEVEL: warn
+    volumes:
+      - cubestore-data:/cube/data
+    mem_limit: 2g
+    networks: [datalab-net]
+
+volumes:
+  cubestore-data:
+
+networks:
+  datalab-net:
+    external: true
+    name: datalab-net
